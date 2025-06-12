@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  n8n:
+    build:
+      context: .
+      # Optionally, specify Dockerfile if it's not named 'Dockerfile'
+      # dockerfile: Dockerfile
+    ports:
+      - "5678:5678" # Maps container port 5678 to host port 5678
+    volumes:
+      - n8n_data:/home/node/.n8n # Persists n8n's internal data, credentials, executions, etc.
+      - output_reels:/app/output # Mounts a volume for storing output reels from workflows
+      # The Dockerfile copies the project's 'scripts/' to '/app/scripts/' and 'workflows/' to '/app/workflows/' inside the image.
+      # - The analyze_scenes.py script will be accessible at /app/scripts/analyze_scenes.py from Execute Command nodes.
+      # - Workflows from /app/workflows/ (like youtube_to_tiktok.json) can be manually imported into n8n.
+      #
+      # Alternative for workflows (auto-discovery):
+      # If you prefer n8n to auto-discover workflows from your local 'workflows' directory upon startup,
+      # you could mount it directly like this (ensure 'workflows' dir exists locally):
+      # - ./workflows:/home/node/.n8n/custom/workflows
+      # This bypasses the COPY step in Dockerfile for workflows and uses local files directly.
+      # For this project, we'll rely on the workflows copied into the image at /app/workflows/ and manual import,
+      # as per the README's anticipated instructions, to ensure the image is self-contained with a specific version of workflows.
+    environment:
+      - GENERIC_TIMEZONE=Europe/Berlin # Example: Set a timezone for n8n
+      # - N8N_USER_FOLDER=/home/node/.n8n # This is the default, usually not needed to be set explicitly
+      # Add any other n8n specific environment variables below if required for your setup
+      # e.g., N8N_LOG_LEVEL=debug for more verbose logging from n8n
+    restart: unless-stopped # Optional: ensures the n8n service restarts automatically unless manually stopped
+
+volumes:
+  n8n_data: # Defines the named volume for n8n's persistent data
+    driver: local # Default, but can be explicit
+  output_reels: # Defines the named volume for storing output reels
+    driver: local
