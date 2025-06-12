@@ -1,0 +1,234 @@
+{
+  "name": "YouTube to TikTok Reel Automator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "youtube-to-tiktok-webhook",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Start: YouTube URL",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "id": "16c9f707-7df0-46a4-8924-7896987af9d5",
+      "webhookId": "youtube-to-tiktok-webhook"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "url",
+              "value": "{{ $json.body.url }}"
+            }
+          ]
+        },
+        "keepOnlySet": true,
+        "options": {}
+      },
+      "name": "Set Video URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        300
+      ],
+      "id": "0a9b4f3a-9b8e-4a1c-9a9c-079c1e3a2f0c"
+    },
+    {
+      "parameters": {
+        "command": "yt-dlp -o \"/tmp/input_video.%(ext)s\" -f \"best[ext=mp4]\" \"{{ $json.url }}\"",
+        "options": {}
+      },
+      "name": "Download Video",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        750,
+        300
+      ],
+      "id": "f2c9e0a7-8d3b-4f8c-8e8a-8e5d8e4c0a8a"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "downloaded_video_path",
+              "value": "/tmp/input_video.mp4"
+            }
+          ]
+        },
+        "keepOnlySet": true,
+        "options": {}
+      },
+      "name": "Set Video Path",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        300
+      ],
+      "id": "a5b0c1d2-3e4f-5a6b-7c8d-9e0f1a2b3c4d"
+    },
+    {
+      "parameters": {
+        "command": "python /app/scripts/analyze_scenes.py \"{{ $json.downloaded_video_path }}\"",
+        "options": {}
+      },
+      "name": "Analyze Video Scenes",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ],
+      "id": "b6c1d2e3-4f5a-6b7c-8d9e-0f1a2b3c4d5e"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "scenes",
+              "value": "{{ JSON.parse($json.stdout) }}"
+            }
+          ]
+        },
+        "keepOnlySet": true,
+        "options": {}
+      },
+      "name": "Set Scene Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1.1,
+      "position": [
+        1500,
+        300
+      ],
+      "id": "c7d2e3f4-5a6b-7c8d-9e0f-1a2b3c4d5e6f"
+    },
+    {
+      "parameters": {
+        "command": "python3 /app/scripts/process_video.py \"{{ $json.downloaded_video_path }}\" \"{{ JSON.stringify($json.scenes) }}\" \"/app/output\"",
+        "options": {}
+      },
+      "name": "Process Video (Cut, Concat, Format)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1750,
+        300
+      ],
+      "id": "d8e3f4g5-6b7c-8d9e-0f1a-2b3c4d5e6f7g"
+    },
+    {
+      "parameters": {
+        "values": {},
+        "keepOnlySet": true,
+        "expressions": {
+          "final_reel_path": "{{ $json.stdout.trim() }}"
+        },
+        "options": {}
+      },
+      "name": "Set Final Reel Path",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        300
+      ],
+      "id": "e9f4g5h6-7c8d-9e0f-1a2b-3c4d5e6f7g8h"
+    }
+  ],
+  "connections": {
+    "Start: YouTube URL": {
+      "main": [
+        [
+          {
+            "node": "Set Video URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Video URL": {
+      "main": [
+        [
+          {
+            "node": "Download Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video": {
+      "main": [
+        [
+          {
+            "node": "Set Video Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Video Path": {
+      "main": [
+        [
+          {
+            "node": "Analyze Video Scenes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Video Scenes": {
+      "main": [
+        [
+          {
+            "node": "Set Scene Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Scene Data": {
+      "main": [
+        [
+          {
+            "node": "Process Video (Cut, Concat, Format)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Video (Cut, Concat, Format)": {
+      "main": [
+        [
+          {
+            "node": "Set Final Reel Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {}
+}
